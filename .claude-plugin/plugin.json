@@ -1,6 +1,6 @@
 {
   "name": "discountrunners",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Move GitHub Actions jobs to DiscountRunners.io, right-size them, find where workflows could run in parallel, diagnose slow or failed runs and summarize recent activity, bake repository images for packages jobs install every run and cache Docker builds, using your own GitHub rights.",
   "author": {
     "name": "DiscountRunners.io",

@@ -39,6 +39,10 @@ inside them, and change nothing the user did not ask for.
 A is the fastest: base images, layers and the build cache come back with nothing to download.
 B needs no new steps. C keeps the cache on a disk without Actions cache traffic.
 
+Only A keeps the contents of `RUN --mount=type=cache` directories. B and C save layers, so a step
+that re-runs starts with empty package and compiler caches. For compiled languages (Go, Rust,
+Java, C++) and incremental builds, prefer A wherever the job allows it.
+
 ### A. Docker's data on a sticky disk
 
 Add, before any step that uses Docker:
@@ -55,8 +59,11 @@ and build with Docker's own builder:
           driver: docker
 ```
 
-- `<key>`: 1-128 of `A-Z a-z 0-9 . _ -`, one per image or per workflow, for example
-  `docker-web`. Size 40-100 GiB, enough for the images plus their build cache.
+- `<key>`: 1-128 of `A-Z a-z 0-9 . _ -`, for example `docker-web`. Use one key per family of
+  images that share layers: images built from a common base stage share a key, unrelated images
+  each get their own. Size 40-100 GiB, enough for the images plus their build cache.
+- If the job pushes a large image under a new tag every run, add `docker rmi <image>:<tag>` after
+  the push so old images don't fill the disk.
 - Remove `cache-from`/`cache-to` from that build; the cache lives on the disk.
 - Plain `docker build` and `docker compose build` work unchanged after the `dr-sticky` step.
 - It refuses to run in a job with `services:` or `container:`; use B there.
@@ -88,7 +95,22 @@ account's Actions cache limit.
           mv "$RUNNER_TEMP/buildkit/cache-new" "$RUNNER_TEMP/buildkit/cache"
 ```
 
-## 3. Open the pull request
+## 3. Check the Dockerfile
+
+Most runs change code and leave dependencies alone, so these usually matter more than the cache
+setup. Suggest each one that applies, in the same pull request:
+
+- **Manifests before source.** If `COPY . .` (or a broad `COPY`) comes before the dependency
+  install, copy only the manifests and lockfile, install, then copy the rest. The final image is
+  the same.
+- **Cache mounts with setup A.** Add `--mount=type=cache` to install and build steps: npm
+  `/root/.npm`, pip `/root/.cache/pip`, Go `/root/.cache/go-build` and `/go/pkg/mod`, Cargo
+  `/usr/local/cargo/registry`.
+- **Caches that only grow.** Cargo, pip, npm, pnpm and Bazel caches keep every version they have
+  seen; mention `docker builder prune -f --keep-storage 20GB`, or changing the key, if a disk
+  fills.
+
+## 4. Open the pull request
 
 Use a new branch and follow the repository's pull request template. The body names each job, the
 setup chosen and why, and that the first run after merge fills the cache, so the saving shows
@@ -96,7 +118,7 @@ from the second run on. A branch's first run starts from the default branch's ca
 disks are billed per GiB-month while attached and for their saved snapshots; point to
 https://discountrunners.io/pricing for current prices.
 
-## 4. After merge
+## 5. After merge
 
 Compare the build step's time on the second run with the runs before. In the log, a warm build
 shows `CACHED` steps; with setup A, `dr-sticky` prints `restored` and later `saving`. If it says
