@@ -1,0 +1,15 @@
+{
+  "name": "discountrunners",
+  "owner": {
+    "name": "DiscountRunners.io",
+    "url": "https://discountrunners.io"
+  },
+  "description": "Faster, cheaper GitHub Actions runners from DiscountRunners.io, and the skills to move your CI onto them.",
+  "plugins": [
+    {
+      "name": "discountrunners",
+      "source": "./",
+      "description": "DiscountRunners.io MCP server and skills to optimize CI and runners."
+    }
+  ]
+}

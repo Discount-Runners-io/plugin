@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "DiscountRunners": {
+      "type": "http",
+      "url": "https://mcp.discountrunners.io/mcp"
+    }
+  }
+}
